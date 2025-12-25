@@ -12,75 +12,92 @@ html, body {
   width: 100%;
   height: 100%;
   background: black;
+  font-family: 'Segoe UI', sans-serif;
   overflow: hidden;
-  font-family: Arial, sans-serif;
 }
 
-#unity-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* LOADING SCREEN */
-#loader {
+/* ===== LOADING SCREEN ===== */
+#loading-screen {
   position: fixed;
   inset: 0;
   background: black;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 99;
+  z-index: 10;
+  transition: opacity 1s ease, filter 1s ease;
 }
 
-#bg {
+#loading-bg {
   position: absolute;
   inset: 0;
   background: url("RogueSeargeant.png") center/cover no-repeat;
-  filter: blur(10px) brightness(0.5);
+  filter: blur(12px) brightness(0.6);
+  animation: fadeIn 1.5s ease forwards;
 }
 
-#content {
+#loading-content {
   position: relative;
   text-align: center;
   color: white;
+  z-index: 2;
 }
 
-h1 {
-  font-size: 52px;
-  margin: 0;
+#game-title {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
 }
 
-p {
+#game-subtitle {
+  font-size: 16px;
   opacity: 0.8;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
-#bar {
-  width: 320px;
+/* ===== LOADING BAR ===== */
+#loading-bar {
+  width: 360px;
   height: 14px;
-  background: rgba(255,255,255,0.2);
-  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px;
   overflow: hidden;
 }
 
-#progress {
+#loading-progress {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #00eaff, #00ff99);
-  transition: width 0.2s;
+  background: linear-gradient(90deg, #00f0ff, #00ff9c);
+  box-shadow: 0 0 15px #00ffd5;
+  transition: width 0.2s ease;
+}
+
+/* ===== UNITY CANVAS ===== */
+#unity-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 </style>
 </head>
 
 <body>
 
-<div id="loader">
-  <div id="bg"></div>
-  <div id="content">
-    <h1>RogueSeargeant</h1>
-    <p>by HOHO GAMES</p>
-    <div id="bar"><div id="progress"></div></div>
+<div id="loading-screen">
+  <div id="loading-bg"></div>
+  <div id="loading-content">
+    <div id="game-title">RogueSeargeant</div>
+    <div id="game-subtitle">by HOHO GAMES</div>
+    <div id="loading-bar">
+      <div id="loading-progress"></div>
+    </div>
   </div>
 </div>
 
@@ -88,27 +105,21 @@ p {
 
 <script src="RogueSeargeant.loader.js"></script>
 <script>
-const progressBar = document.getElementById("progress");
+const progressBar = document.getElementById("loading-progress");
 
-/* ========= CACHE MERGED FILES ========= */
-async function mergeAndCache(name, parts) {
-  if (localStorage.getItem(name)) return name;
-
+/* ===== MERGE FILE PARTS ===== */
+async function mergeParts(parts) {
   const buffers = [];
   for (let i = 0; i < parts.length; i++) {
     const res = await fetch(parts[i]);
     buffers.push(await res.arrayBuffer());
-    progressBar.style.width = ((i + 1) / parts.length * 40) + "%";
+    progressBar.style.width = ((i + 1) / parts.length * 50) + "%";
   }
-
-  const blob = new Blob(buffers);
-  const url = URL.createObjectURL(blob);
-  localStorage.setItem(name, url);
-  return url;
+  return URL.createObjectURL(new Blob(buffers));
 }
 
 (async () => {
-  const dataUrl = await mergeAndCache("data", [
+  const dataUrl = await mergeParts([
     "RogueSeargeant.data.part1",
     "RogueSeargeant.data.part2",
     "RogueSeargeant.data.part3",
@@ -117,23 +128,26 @@ async function mergeAndCache(name, parts) {
     "RogueSeargeant.data.part6"
   ]);
 
-  const wasmUrl = await mergeAndCache("wasm", [
+  const wasmUrl = await mergeParts([
     "RogueSeargeant.wasm.part1",
     "RogueSeargeant.wasm.part2"
   ]);
 
   createUnityInstance(document.querySelector("#unity-canvas"), {
-    dataUrl: dataUrl,
+    dataUrl: dataUrl, "RogueSeargeant.data
     frameworkUrl: "RogueSeargeant.framework.js",
-    codeUrl: wasmUrl,
+    codeUrl: wasmUrl, "RogueSeargeant.wasm
+    streamingAssetsUrl: "StreamingAssets",
     companyName: "HOHO GAMES",
     productName: "RogueSeargeant",
     productVersion: "1.0"
   }, (progress) => {
-    progressBar.style.width = (40 + progress * 60) + "%";
+    progressBar.style.width = (50 + progress * 50) + "%";
   }).then(() => {
-    document.getElementById("loader").style.opacity = "0";
-    setTimeout(() => document.getElementById("loader").remove(), 1000);
+    const loadingScreen = document.getElementById("loading-screen");
+    loadingScreen.style.opacity = "0";
+    loadingScreen.style.filter = "blur(20px)";
+    setTimeout(() => loadingScreen.remove(), 1200);
   });
 })();
 </script>
